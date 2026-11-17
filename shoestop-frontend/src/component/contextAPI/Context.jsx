@@ -3,7 +3,7 @@ import axios from 'axios';
 
 export const productContext = createContext();
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_URL || "https://shoestop-devops.onrender.com";
 
 export const ContextProvider = ({ children }) => {
   const cleanToken = (raw) => {
