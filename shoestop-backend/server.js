@@ -22,8 +22,8 @@ app.get('/api/health', (req, res) => {
     res.status(200).json({
         status: 'UP',
         service: 'shoestop-backend',
-        uptime: ${Math.floor(process.uptime())}s,
-        memoryRSS: ${Math.round(process.memoryUsage().rss / 1024 / 1024)} MB,
+        uptime: `${Math.floor(process.uptime())}s`,
+        memoryRSS: `${Math.round(process.memoryUsage().rss / 1024 / 1024)} MB`,
         database: dbState,
         timestamp: new Date().toISOString()
     });
@@ -37,7 +37,7 @@ const startServer = async () => {
         await connectDB(process.env.mongoURI);
         console.log('connected to db');
         app.listen(port, () => {
-            console.log(server started at );
+            console.log(`server started at ${port}`);
         });
     } catch (error) {
         console.log(error);
