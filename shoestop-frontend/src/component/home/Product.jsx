@@ -24,7 +24,7 @@ const Product = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState('');
-  const { API_BASE, token, fetchCart, searchQuery, selectedBrand, setSelectedBrand } = useContext(productContext);
+  const { API_BASE, addItemToCart, searchQuery, selectedBrand, setSelectedBrand } = useContext(productContext);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -48,22 +48,13 @@ const Product = () => {
   };
 
   const handleAddToCart = async (item, redirectCart = false) => {
-    try {
-      const res = await axios.post(
-        `${API_BASE}/api/addcart`,
-        { image: item.image, title: item.title, company: item.company, price: item.price },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      await fetchCart();
-      if (redirectCart) {
-        navigate('/cart');
-      } else if (res.status === 202) {
-        showToast('Already in your Flipkart Cart!');
-      } else {
-        showToast(`Added "${item.title}" to Cart!`);
-      }
-    } catch {
-      showToast('Added to Cart!');
+    const res = await addItemToCart(item);
+    if (redirectCart) {
+      navigate('/cart');
+    } else if (res.status === 'exists') {
+      showToast('Already in your Flipkart Cart!');
+    } else {
+      showToast(`Added "${item.title}" to Cart!`);
     }
   };
 
@@ -76,15 +67,12 @@ const Product = () => {
 
   return (
     <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '12px 16px 40px' }}>
-      
-      {/* Toast Notification */}
       {toast && (
         <div style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: '#212121', color: '#fff', padding: '12px 20px', borderRadius: '4px', fontWeight: 600, zIndex: 2000, boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
           ✓ {toast}
         </div>
       )}
 
-      {/* Flipkart Category / Brand Strip */}
       <div style={{ backgroundColor: '#fff', padding: '12px 16px', borderRadius: '4px', marginBottom: '12px', display: 'flex', gap: '10px', overflowX: 'auto', boxShadow: '0 1px 2px rgba(0,0,0,0.08)' }}>
         {BRANDS.map((brand) => (
           <button
@@ -107,7 +95,6 @@ const Product = () => {
         ))}
       </div>
 
-      {/* Flipkart Sale Banner */}
       <div style={{ background: 'linear-gradient(90deg, #2874f0 0%, #1a56db 60%, #0f172a 100%)', borderRadius: '4px', padding: '24px 32px', color: '#fff', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <span style={{ backgroundColor: '#ffe500', color: '#212121', fontSize: '11px', fontWeight: 800, padding: '3px 8px', borderRadius: '2px', textTransform: 'uppercase' }}>
@@ -119,14 +106,12 @@ const Product = () => {
         <div style={{ fontSize: '44px' }}>👟⚡</div>
       </div>
 
-      {/* Section Header */}
       <div style={{ backgroundColor: '#fff', padding: '14px 20px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>
           {selectedBrand === 'All' ? 'Best of Sneakers & Sports Shoes' : `${selectedBrand} Collection`} ({filtered.length} Items)
         </h4>
       </div>
 
-      {/* Product Grid */}
       {loading ? (
         <div style={{ backgroundColor: '#fff', padding: '40px', textAlign: 'center' }}>Loading shoes...</div>
       ) : (
@@ -136,7 +121,7 @@ const Product = () => {
             return (
               <div
                 key={item._id || idx}
-                style={{ border: '1px solid #f0f0f0', borderRadius: '4px', padding: '14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', transition: 'box-shadow 0.2s', backgroundColor: '#fff' }}
+                style={{ border: '1px solid #f0f0f0', borderRadius: '4px', padding: '14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', backgroundColor: '#fff' }}
               >
                 <div>
                   <div style={{ height: '190px', overflow: 'hidden', borderRadius: '4px', backgroundColor: '#f8fafc', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -161,12 +146,14 @@ const Product = () => {
 
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button
+                    type="button"
                     onClick={() => handleAddToCart(item, false)}
                     style={{ flex: 1, backgroundColor: '#ff9f00', color: '#fff', border: 'none', padding: '9px 6px', fontSize: '12px', fontWeight: 700, borderRadius: '2px', cursor: 'pointer' }}
                   >
                     ADD TO CART
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleAddToCart(item, true)}
                     style={{ flex: 1, backgroundColor: '#fb641b', color: '#fff', border: 'none', padding: '9px 6px', fontSize: '12px', fontWeight: 700, borderRadius: '2px', cursor: 'pointer' }}
                   >

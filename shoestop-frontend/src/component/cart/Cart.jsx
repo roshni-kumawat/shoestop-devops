@@ -1,20 +1,10 @@
 import React, { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { productContext } from '../contextAPI/Context';
 
 const Cart = () => {
-  const { API_BASE, cartItems, fetchCart, placeOrder, user } = useContext(productContext);
+  const { cartItems, removeItemFromCart, placeOrder, user } = useContext(productContext);
   const navigate = useNavigate();
-
-  const handleRemove = async (id) => {
-    try {
-      await axios.delete(`${API_BASE}/api/addcart/${id}`);
-      await fetchCart();
-    } catch (err) {
-      console.log(err);
-    }
-  };
 
   const totalAmount = cartItems.reduce((sum, item) => sum + Number(item.price || 0), 0);
   const totalMrp = Math.round(totalAmount * 1.25);
@@ -39,8 +29,6 @@ const Cart = () => {
         </div>
       ) : (
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-          
-          {/* Left: Cart Items List */}
           <div style={{ flex: '2 1 560px', backgroundColor: '#fff', borderRadius: '4px', boxShadow: '0 1px 2px rgba(0,0,0,0.08)' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontWeight: 700, fontSize: '16px', color: '#2874f0' }}>ShoeStop Cart ({cartItems.length})</span>
@@ -58,7 +46,8 @@ const Cart = () => {
                     <span style={{ fontSize: '13px', color: '#388e3c', fontWeight: 700 }}>20% Off • Free Delivery</span>
                   </div>
                   <button
-                    onClick={() => handleRemove(item._id)}
+                    type="button"
+                    onClick={() => removeItemFromCart(item._id)}
                     style={{ background: 'none', border: 'none', color: '#212121', fontWeight: 700, fontSize: '13px', cursor: 'pointer', padding: 0 }}
                   >
                     REMOVE
@@ -69,6 +58,7 @@ const Cart = () => {
 
             <div style={{ padding: '16px 20px', display: 'flex', justifyContent: 'flex-end', boxShadow: '0 -2px 10px rgba(0,0,0,0.06)' }}>
               <button
+                type="button"
                 onClick={handlePlaceOrder}
                 style={{ backgroundColor: '#fb641b', color: '#fff', border: 'none', padding: '14px 42px', fontSize: '15px', fontWeight: 700, borderRadius: '2px', cursor: 'pointer' }}
               >
@@ -77,7 +67,6 @@ const Cart = () => {
             </div>
           </div>
 
-          {/* Right: Price Details Box */}
           <div style={{ flex: '1 1 300px', backgroundColor: '#fff', borderRadius: '4px', boxShadow: '0 1px 2px rgba(0,0,0,0.08)', padding: '16px 20px' }}>
             <div style={{ fontSize: '14px', fontWeight: 700, color: '#878787', borderBottom: '1px solid #f0f0f0', paddingBottom: '12px', marginBottom: '16px' }}>
               PRICE DETAILS
@@ -102,7 +91,6 @@ const Cart = () => {
               You will save ₹{discount.toLocaleString('en-IN')} on this order
             </div>
           </div>
-
         </div>
       )}
     </div>

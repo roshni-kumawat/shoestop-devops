@@ -19,7 +19,13 @@ export const ContextProvider = ({ children }) => {
       return null;
     }
   });
-  const [cartItems, setCartItems] = useState([]);
+  const [cartItems, setCartItems] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('shoestop_cart')) || [];
+    } catch {
+      return [];
+    }
+  });
   const [favProList, setFavProductList] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBrand, setSelectedBrand] = useState('All');
@@ -30,6 +36,11 @@ export const ContextProvider = ({ children }) => {
       return [];
     }
   });
+
+  const saveCartLocal = (items) => {
+    setCartItems(items);
+    localStorage.setItem('shoestop_cart', JSON.stringify(items));
+  };
 
   const setToken = (newToken) => {
     const cleaned = cleanToken(newToken);
@@ -53,7 +64,7 @@ export const ContextProvider = ({ children }) => {
   const logout = () => {
     setToken('');
     setUser(null);
-    setCartItems([]);
+    saveCartLocal([]);
   };
 
   const fetchCart = async (activeToken = token) => {
@@ -62,9 +73,54 @@ export const ContextProvider = ({ children }) => {
       const res = await axios.get(`${API_BASE}/api/addcart`, {
         headers: { Authorization: `Bearer ${activeToken}` }
       });
-      setCartItems(Array.isArray(res.data) ? res.data : []);
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        saveCartLocal(res.data);
+      }
     } catch (err) {
-      console.log('Cart fetch info:', err?.response?.status);
+      console.log('Cart sync info:', err?.response?.status);
+    }
+  };
+
+  const addItemToCart = async (item) => {
+    const exists = cartItems.some((c) => c.title === item.title);
+    if (exists) {
+      return { status: 'exists' };
+    }
+    const newItem = {
+      _id: item._id || 'cart_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      image: item.image,
+      title: item.title,
+      company: item.company,
+      price: Number(item.price)
+    };
+    const updated = [...cartItems, newItem];
+    saveCartLocal(updated);
+
+    if (token) {
+      try {
+        await axios.post(
+          `${API_BASE}/api/addcart`,
+          { image: item.image, title: item.title, company: item.company, price: item.price },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } catch (err) {
+        console.log('Backend cart post fallback:', err?.response?.status);
+      }
+    }
+    return { status: 'added' };
+  };
+
+  const removeItemFromCart = async (id) => {
+    const updated = cartItems.filter((item) => item._id !== id);
+    saveCartLocal(updated);
+    if (token && id && !String(id).startsWith('cart_')) {
+      try {
+        await axios.delete(`${API_BASE}/api/addcart/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } catch (err) {
+        console.log(err);
+      }
     }
   };
 
@@ -79,6 +135,7 @@ export const ContextProvider = ({ children }) => {
     const updated = [newOrder, ...orders];
     setOrders(updated);
     localStorage.setItem('shoestop_orders', JSON.stringify(updated));
+    saveCartLocal([]);
     return newOrder;
   };
 
@@ -100,6 +157,8 @@ export const ContextProvider = ({ children }) => {
         cartItems,
         setCartItems,
         fetchCart,
+        addItemToCart,
+        removeItemFromCart,
         favProList,
         setFavProductList,
         searchQuery,
