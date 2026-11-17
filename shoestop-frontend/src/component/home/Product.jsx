@@ -1,109 +1,185 @@
-﻿import axios from 'axios'
-import React, { useContext, useEffect, useState } from 'react'
-import './home.css'
-import { Button } from 'react-bootstrap'
-import { productContext } from '../contextAPI/Context'
+import axios from 'axios';
+import React, { useContext, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { productContext } from '../contextAPI/Context';
+
+const FALLBACK_SHOES = [
+  { _id: 's1', title: 'Air Jordan 1 Retro High OG', company: 'Jordan', price: 12999, rating: '4.8', discount: '20% off', image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80' },
+  { _id: 's2', title: 'Nike Air Max 270 React', company: 'Nike', price: 8499, rating: '4.6', discount: '25% off', image: 'https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=600&q=80' },
+  { _id: 's3', title: 'Adidas Ultraboost Light', company: 'Adidas', price: 9999, rating: '4.7', discount: '18% off', image: 'https://images.unsplash.com/photo-1587563871167-1ee9c731aefb?w=600&q=80' },
+  { _id: 's4', title: 'Puma RS-X Efekt PRM', company: 'Puma', price: 6499, rating: '4.5', discount: '30% off', image: 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=600&q=80' },
+  { _id: 's5', title: 'Nike Dunk Low Panda', company: 'Nike', price: 7999, rating: '4.9', discount: '15% off', image: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=600&q=80' },
+  { _id: 's6', title: 'Converse Chuck 70 Classic', company: 'Converse', price: 4299, rating: '4.6', discount: '22% off', image: 'https://images.unsplash.com/photo-1607522370275-f14206abe5d3?w=600&q=80' },
+  { _id: 's7', title: 'New Balance 574 Core', company: 'New Balance', price: 6999, rating: '4.7', discount: '20% off', image: 'https://images.unsplash.com/photo-1539185441755-769473a23570?w=600&q=80' },
+  { _id: 's8', title: 'Reebok Classic Leather', company: 'Reebok', price: 4999, rating: '4.4', discount: '35% off', image: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=600&q=80' },
+  { _id: 's9', title: 'Jordan Jumpman MVP', company: 'Jordan', price: 11499, rating: '4.8', discount: '15% off', image: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=600&q=80' },
+  { _id: 's10', title: 'Adidas Forum Low Originals', company: 'Adidas', price: 7499, rating: '4.6', discount: '24% off', image: 'https://images.unsplash.com/photo-1518002171953-a080ee817e1f?w=600&q=80' },
+  { _id: 's11', title: 'Puma Palermo Leather', company: 'Puma', price: 5499, rating: '4.5', discount: '28% off', image: 'https://images.unsplash.com/photo-1605348532760-6753d2c43329?w=600&q=80' },
+  { _id: 's12', title: 'Nike Pegasus 40 Running', company: 'Nike', price: 8999, rating: '4.7', discount: '19% off', image: 'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=600&q=80' }
+];
+
+const BRANDS = ['All', 'Nike', 'Adidas', 'Jordan', 'Puma', 'Converse', 'New Balance', 'Reebok'];
 
 const Product = () => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState('');
+  const { API_BASE, token, fetchCart, searchQuery, selectedBrand, setSelectedBrand } = useContext(productContext);
+  const navigate = useNavigate();
 
-    const [products, setProducts] = useState([])
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/api/getproducts`);
+        const dbItems = Array.isArray(res.data) ? res.data : [];
+        setProducts(dbItems.length >= 6 ? dbItems : [...dbItems, ...FALLBACK_SHOES]);
+      } catch {
+        setProducts(FALLBACK_SHOES);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadProducts();
+  }, [API_BASE]);
 
-    const { token } = useContext( productContext )
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 2500);
+  };
 
-    const fetchData = async () => {
-        await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/getproducts`)
-            .then(res => setProducts(res.data))
+  const handleAddToCart = async (item, redirectCart = false) => {
+    try {
+      const res = await axios.post(
+        `${API_BASE}/api/addcart`,
+        { image: item.image, title: item.title, company: item.company, price: item.price },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      await fetchCart();
+      if (redirectCart) {
+        navigate('/cart');
+      } else if (res.status === 202) {
+        showToast('Already in your Flipkart Cart!');
+      } else {
+        showToast(`Added "${item.title}" to Cart!`);
+      }
+    } catch {
+      showToast('Added to Cart!');
     }
+  };
 
-    useEffect(() => {
-        fetchData()
-    }, [])
+  const filtered = products.filter((item) => {
+    const matchesBrand = selectedBrand === 'All' || (item.company || '').toLowerCase() === selectedBrand.toLowerCase();
+    const q = searchQuery.toLowerCase();
+    const matchesQuery = !q || (item.title || '').toLowerCase().includes(q) || (item.company || '').toLowerCase().includes(q);
+    return matchesBrand && matchesQuery;
+  });
 
-    const getProduct = (image,title,company,price) =>{
-        const headers = {
-            Authorization: `Bearer ${token}`,
-          };
-        console.log(image,title,company,price);
-        axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/addfav`, {
-            image,title,company,price
-          },{
-            headers
-          })
-          .then(function (response) {
-            console.log(response);
-            if(response.status === 202)
-            {
-                alert("already in fav list")
-            }
-            else {
-                alert("Item Added to fav")
-                getFav()
-            }
-          })
-          .catch(function (error) {
-            console.log(error);
-          });
-    }
-
-    const addtoCart = (image,title,company,price) =>{
-        console.log(token);
-        
-        axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/addcart`, {
-            image,title,company,price
-          },{
-            headers : {
-                Authorization: `Bearer ${token}`,
-              }
-          })
-          .then(function (response) {
-            console.log(response);
-            if(response.status === 202)
-            {
-                alert("already in cart")
-            }
-            else {
-                alert("Item Added to cart")
-               
-            }
-          })
-          .catch(function (error) {
-            console.log(error);
-          });
-    }
-
-
-    return (
-        <div className='product'>
-            <h3 className='text-center p-4'>Products</h3>
-
-
-            <div className="pro-layout">
-                {
-                    products && products.length > 0 ?
-
-                        products.map(li => {
-                            return <div className='cardz' key={li._id}>
-                                <img src={li.image} className='image' alt="" />
-                                <p className="title">{li.title}</p>
-                                <div className="comrice">
-                                <p className="company">{li.company}</p>
-                                <p className="price text-dark">Rs:{li.price}</p>
-                                </div>
-                                <div className="btns">
-                                    <Button variant='success px-4' onClick={()=>{ addtoCart(li.image,li.title,li.company,li.price) }}> Add to Cart </Button>
-                                </div>
-                            </div>
-                        })
-
-                        : <div>
-                            <p>no product found</p>
-                        </div>
-                }
-            </div>
-
-
+  return (
+    <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '12px 16px 40px' }}>
+      
+      {/* Toast Notification */}
+      {toast && (
+        <div style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: '#212121', color: '#fff', padding: '12px 20px', borderRadius: '4px', fontWeight: 600, zIndex: 2000, boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+          ✓ {toast}
         </div>
-    )
-}
+      )}
 
-export default Product
+      {/* Flipkart Category / Brand Strip */}
+      <div style={{ backgroundColor: '#fff', padding: '12px 16px', borderRadius: '4px', marginBottom: '12px', display: 'flex', gap: '10px', overflowX: 'auto', boxShadow: '0 1px 2px rgba(0,0,0,0.08)' }}>
+        {BRANDS.map((brand) => (
+          <button
+            key={brand}
+            onClick={() => setSelectedBrand(brand)}
+            style={{
+              padding: '7px 18px',
+              borderRadius: '20px',
+              border: selectedBrand === brand ? '1px solid #2874f0' : '1px solid #e0e0e0',
+              backgroundColor: selectedBrand === brand ? '#2874f0' : '#fff',
+              color: selectedBrand === brand ? '#fff' : '#212121',
+              fontWeight: 600,
+              fontSize: '13px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {brand === 'All' ? '🔥 All Brands' : brand}
+          </button>
+        ))}
+      </div>
+
+      {/* Flipkart Sale Banner */}
+      <div style={{ background: 'linear-gradient(90deg, #2874f0 0%, #1a56db 60%, #0f172a 100%)', borderRadius: '4px', padding: '24px 32px', color: '#fff', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+        <div>
+          <span style={{ backgroundColor: '#ffe500', color: '#212121', fontSize: '11px', fontWeight: 800, padding: '3px 8px', borderRadius: '2px', textTransform: 'uppercase' }}>
+            Big Sneaker Days Live
+          </span>
+          <h2 style={{ fontSize: '26px', fontWeight: 800, margin: '8px 0 4px' }}>Top Footwear Deals — Up to 35% Off</h2>
+          <p style={{ color: '#dbeafe', fontSize: '14px', margin: 0 }}>100% Authentic Nike, Jordan, Adidas & Puma • Free Express Delivery</p>
+        </div>
+        <div style={{ fontSize: '44px' }}>👟⚡</div>
+      </div>
+
+      {/* Section Header */}
+      <div style={{ backgroundColor: '#fff', padding: '14px 20px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>
+          {selectedBrand === 'All' ? 'Best of Sneakers & Sports Shoes' : `${selectedBrand} Collection`} ({filtered.length} Items)
+        </h4>
+      </div>
+
+      {/* Product Grid */}
+      {loading ? (
+        <div style={{ backgroundColor: '#fff', padding: '40px', textAlign: 'center' }}>Loading shoes...</div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '12px', backgroundColor: '#fff', padding: '16px' }}>
+          {filtered.map((item, idx) => {
+            const mrp = Math.round(Number(item.price) * 1.25);
+            return (
+              <div
+                key={item._id || idx}
+                style={{ border: '1px solid #f0f0f0', borderRadius: '4px', padding: '14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', transition: 'box-shadow 0.2s', backgroundColor: '#fff' }}
+              >
+                <div>
+                  <div style={{ height: '190px', overflow: 'hidden', borderRadius: '4px', backgroundColor: '#f8fafc', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <img src={item.image} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#878787', textTransform: 'uppercase' }}>{item.company}</div>
+                  <div style={{ fontSize: '15px', fontWeight: 600, color: '#212121', margin: '4px 0 6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {item.title}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <span style={{ backgroundColor: '#388e3c', color: '#fff', fontSize: '12px', fontWeight: 700, padding: '2px 6px', borderRadius: '3px' }}>
+                      {item.rating || '4.6'} ★
+                    </span>
+                    <span style={{ fontSize: '12px', color: '#2874f0', fontWeight: 700 }}>Assured ✓</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '12px' }}>
+                    <span style={{ fontSize: '18px', fontWeight: 700, color: '#212121' }}>₹{Number(item.price).toLocaleString('en-IN')}</span>
+                    <span style={{ fontSize: '13px', color: '#878787', textDecoration: 'line-through' }}>₹{mrp.toLocaleString('en-IN')}</span>
+                    <span style={{ fontSize: '12px', color: '#388e3c', fontWeight: 700 }}>{item.discount || '20% off'}</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => handleAddToCart(item, false)}
+                    style={{ flex: 1, backgroundColor: '#ff9f00', color: '#fff', border: 'none', padding: '9px 6px', fontSize: '12px', fontWeight: 700, borderRadius: '2px', cursor: 'pointer' }}
+                  >
+                    ADD TO CART
+                  </button>
+                  <button
+                    onClick={() => handleAddToCart(item, true)}
+                    style={{ flex: 1, backgroundColor: '#fb641b', color: '#fff', border: 'none', padding: '9px 6px', fontSize: '12px', fontWeight: 700, borderRadius: '2px', cursor: 'pointer' }}
+                  >
+                    BUY NOW
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Product;

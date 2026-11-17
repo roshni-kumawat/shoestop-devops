@@ -1,17 +1,12 @@
-import React from 'react'
-import './home.css'
-import Banner from './Banner'
-import Product from './Product'
-import Footer from './Footer'
+import React from 'react';
+import Product from './Product';
 
 const Home = () => {
   return (
     <div>
-       <Banner/>
-       <Product />
-       <Footer/>
+      <Product />
     </div>
-  )
-}
+  );
+};
 
-export default Home
+export default Home;
